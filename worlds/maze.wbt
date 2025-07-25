@@ -1,4 +1,4 @@
-#VRML_SIM R2023b utf8
+#VRML_SIM R2025a utf8
 
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackground.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
@@ -8,7 +8,6 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/appearances/protos/Parquetry.proto"
 
 WorldInfo {
-  coordinateSystem "ENU"
 }
 Viewpoint {
   fieldOfView 0.75
@@ -29,9 +28,10 @@ RectangleArena {
     colorOverride 0 0 0
   }
 }
-E-puck {
+DEF EPUCK E-puck {
   translation 0.125 -1.375 0
   controller "wall_following_robot"
+  supervisor TRUE
 }
 Wall {
   translation -0.625543 0.495773 0

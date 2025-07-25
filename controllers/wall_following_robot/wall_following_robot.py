@@ -1,7 +1,7 @@
 # x = red
 # y = green
 # z = blue
-from controller import Robot, Supervisor
+from controller import Supervisor
 import math
 
 # Constants
@@ -52,6 +52,20 @@ for i in range(12):
         pos = cell_to_world(i, j)
         print(f"cell ({i},{j}) = {pos} -> cell: {world_to_cell(pos[0], pos[1])}")
         
+# --- Add marker dropping logic ---
+def drop_marker(supervisor, position, radius=0.01, color=[1,0,0]):
+    """Drop a small colored sphere at the given position using Supervisor API."""
+    children_field = supervisor.getRoot().getField('children')
+    proto_str = (
+        f'Transform {{ translation {position[0]} {position[1]} {position[2]} '
+        'children [ '
+        'Shape { '
+        'appearance Appearance { material Material { diffuseColor ' + f'{color[0]} {color[1]} {color[2]}' + ' } } '
+        f'geometry Sphere {{ radius {radius} }} '
+        '} ] }'
+    )
+    children_field.importMFNodeFromString(-1, proto_str)
+
 def run_wall_follower(robot):
     timestep = int(robot.getBasicTimeStep())
 
@@ -83,10 +97,15 @@ def run_wall_follower(robot):
     print(f"Start position (odometry): x={START_POS[0]:.3f}, y={START_POS[1]:.3f}")
     print(f"End position: x={END_POS[0]:.3f}, y={END_POS[1]:.3f}")
 
+    step_count = 0  # Add step counter for marker dropping
     while robot.step(timestep) != -1:
         # Get ground truth position from GPS if available
         gt_translation = gps.getValues()
         x, y, z = gt_translation[0], gt_translation[1], gt_translation[2]
+        # Drop a marker every 10 steps
+        if step_count % 10 == 0:
+            drop_marker(robot, (x, y, z+0.01))  # Slightly above ground
+        step_count += 1
         print(f"Ground truth (GPS): x={x:.3f}, y={y:.3f}, z={z:.3f}")
 
         # Read proximity sensors
@@ -123,5 +142,5 @@ def run_wall_follower(robot):
         right_motor.setVelocity(right_speed)
 
 if __name__ == "__main__":
-    robot = Robot()
+    robot = Supervisor()
     run_wall_follower(robot)
