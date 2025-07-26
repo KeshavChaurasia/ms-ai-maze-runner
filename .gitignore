@@ -1,0 +1,3 @@
+# Prevent uploading your local maze world
+worlds/.maze.wbproj
+worlds/maze.wbt
