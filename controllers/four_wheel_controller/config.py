@@ -51,6 +51,13 @@ class Config:
                           # Set to 0 to disable debug output entirely
     
     # === SENSOR CONFIGURATION PARAMETERS ===
+    SENSOR_THRESHOLD = 380  # Distance sensor threshold value for wall detection
+                            # Raw sensor reading below this value indicates
+                            # an obstacle or wall is detected
+                            # Value depends on sensor type and maze wall material
+                            # Typically calibrated through experimental testing
+    
+    # === SENSOR CONFIGURATION PARAMETERS ===
     SENSOR_THRESHOLD = 400  # Distance sensor threshold value
                             # Raw sensor reading below this value indicates
                             # an obstacle or wall is detected
