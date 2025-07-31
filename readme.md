@@ -10,6 +10,9 @@ This project implements advanced robot navigation algorithms for autonomous maze
 The system implements and compares multiple navigation algorithms on a custom-designed four-wheel omnidirectional robot:
 
 - **Depth-First Search (DFS)**: Systematic graph traversal with backtracking
+- **Breadth-First Search (BFS)**: Level-by-level exploration guaranteeing shortest path
+- **A* Search**: Heuristic-guided optimal pathfinding with Manhattan distance
+- **Flood Fill**: Distance-based exploration with gradient descent pathfinding
 - **Left/Right Wall Following**: Classical maze-solving algorithms based on the hand rule
 - **Smart Wall Following**: Enhanced wall following with dynamic mapping and memory
 - **Advanced Motion Control**: Precision Mecanum wheel kinematics and GPS-based navigation
@@ -69,7 +72,7 @@ The robot platform is designed as an omnidirectional vehicle capable of holonomi
 
 ## Navigation Algorithms
 
-This project implements and analyzes four distinct pathfinding algorithms, each representing different approaches to autonomous navigation:
+This project implements and analyzes seven distinct pathfinding algorithms, each representing different approaches to autonomous navigation:
 
 ### 1. Depth-First Search (DFS) Algorithm
 
@@ -87,7 +90,55 @@ This project implements and analyzes four distinct pathfinding algorithms, each 
 - Systematic problem decomposition and recursive thinking
 - Time complexity analysis (O(V + E) where V=vertices, E=edges)
 
-### 2. Left Wall Following Algorithm
+### 2. Breadth-First Search (BFS) Algorithm
+
+**Theoretical Foundation**: Level-by-level graph exploration guaranteeing the shortest path in unweighted graphs. Essential algorithm for optimal pathfinding.
+
+**Implementation Features**:
+- Three-phase approach: exploration, pathfinding, and execution
+- Queue-based exploration ensuring shortest path discovery
+- Physical robot constraints integration with sensor-based navigation
+- Safe backtracking and adjacency validation for robot movement
+
+**Academic Significance**: Core computer science algorithm demonstrating:
+- Optimal pathfinding in unweighted graphs
+- Queue data structure practical applications
+- Level-order traversal and systematic exploration
+- Guaranteed shortest path properties and proof techniques
+
+### 3. A* Search Algorithm
+
+**Theoretical Foundation**: Informed search algorithm using heuristic functions to guide exploration toward the goal, combining best aspects of Dijkstra's algorithm and greedy best-first search.
+
+**Implementation Features**:
+- Manhattan distance heuristic for grid-based navigation
+- Priority queue with f-score (g + h) for efficient exploration
+- Optimal pathfinding with reduced exploration compared to BFS
+- Heuristic-guided robot movement with obstacle-aware navigation
+
+**Academic Significance**: Advanced AI search algorithm showcasing:
+- Heuristic function design and admissibility properties
+- Informed vs uninformed search strategies
+- A* optimality proof and implementation techniques
+- Priority queue applications in pathfinding algorithms
+
+### 4. Flood Fill Algorithm
+
+**Theoretical Foundation**: Distance-based exploration technique that assigns distance values to cells and uses gradient descent for pathfinding. Popular in maze-solving and pixel filling applications.
+
+**Implementation Features**:
+- Four-phase approach: exploration, distance mapping, path finding, execution
+- Distance gradient creation from target to all reachable cells
+- Gradient descent pathfinding following steepest distance reduction
+- Visual distance map for intuitive maze structure understanding
+
+**Academic Significance**: Demonstrates spatial algorithms including:
+- Distance field computation and gradient-based navigation
+- Flood fill techniques in computational geometry
+- Dynamic programming principles in pathfinding
+- Gradient descent optimization in discrete spaces
+
+### 5. Left Wall Following Algorithm
 
 **Theoretical Foundation**: Classical maze-solving technique based on topological properties ensuring solution discovery in simply-connected mazes.
 
@@ -103,7 +154,7 @@ This project implements and analyzes four distinct pathfinding algorithms, each 
 - Sensor fusion for environmental perception
 - Rule-based system design and implementation
 
-### 3. Right Wall Following Algorithm
+### 6. Right Wall Following Algorithm
 
 **Theoretical Foundation**: Mirror implementation of left wall following, providing comparative analysis of hand-rule variations.
 
@@ -113,7 +164,7 @@ This project implements and analyzes four distinct pathfinding algorithms, each 
 - Performance comparison baseline for algorithm evaluation
 - Alternative strategy for maze topologies favoring right-hand exploration
 
-### 4. Smart Wall Following Algorithm
+### 7. Smart Wall Following Algorithm
 
 **Theoretical Foundation**: Enhanced wall following incorporating spatial memory and adaptive strategy selection based on exploration history.
 
@@ -151,8 +202,8 @@ The system is architected using modular design principles with a simplified, con
 
 #### 3. Navigation Algorithms (`navigation_algorithms.py`)
 - **Purpose**: Centralized collection of all pathfinding strategies
-- **Features**: DFS, left/right wall following, smart wall following algorithms
-- **Academic Value**: Clear separation of algorithm logic from hardware concerns
+- **Features**: DFS, BFS, A*, Flood Fill, left/right wall following, smart wall following algorithms
+- **Academic Value**: Clear separation of algorithm logic from hardware concerns and comprehensive algorithm comparison
 
 #### 4. Visualization and Analysis (`maze_visualizer.py`)
 - **Purpose**: Comprehensive result analysis and performance visualization
@@ -206,6 +257,9 @@ controller.wait_for_gps()
 
 # Run individual algorithms
 controller.run_dfs()                    # Depth-First Search
+controller.run_bfs()                    # Breadth-First Search (shortest path)
+controller.run_astar()                  # A* Search (heuristic-guided optimal)
+controller.run_flood_fill()             # Flood Fill (distance-based optimal)
 controller.run_left_wall_following()    # Left wall following
 controller.run_right_wall_following()   # Right wall following  
 controller.run_smart_wall_following()   # Enhanced wall following
@@ -252,11 +306,11 @@ The refactored system includes significantly improved performance logging and an
 
 ### Expected Academic Outcomes
 
-**Algorithm Performance Hierarchy** (based on maze complexity):
-1. **DFS**: Optimal for complete maze mapping, highest computational overhead
-2. **Smart Wall Following**: Balanced performance with adaptive learning capabilities
-3. **Left/Right Wall Following**: Consistent performance, moderate efficiency
-4. **Basic Wall Following**: Reliable but potentially suboptimal path selection
+**Algorithm Performance Hierarchy** (based on maze complexity and optimality):
+1. **BFS/A*/Flood Fill**: Optimal path algorithms - guaranteed shortest path with different efficiency characteristics
+2. **DFS**: Complete exploration algorithm - finds solution but may not be optimal
+3. **Smart Wall Following**: Adaptive algorithm with memory - balanced performance with learning capabilities
+4. **Left/Right Wall Following**: Deterministic rule-based algorithms - consistent but potentially suboptimal
 
 ## Future Research Directions
 
@@ -291,6 +345,7 @@ This project is released under the MIT License, encouraging academic use and mod
 **Citation Recommendation:**
 When using this project for academic purposes, please reference:
 - Webots robotics simulator platform
-- Specific algorithms implemented (DFS, Wall Following variants)
+- Specific algorithms implemented (DFS, BFS, A*, Flood Fill, Wall Following variants)
 - Mecanum wheel kinematics implementation
 - Academic documentation methodology demonstrated
+- Comparative pathfinding algorithm analysis framework

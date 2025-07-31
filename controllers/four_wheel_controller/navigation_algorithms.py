@@ -7,9 +7,12 @@ interface and the high-level navigation strategies.
 
 Implemented Algorithms:
 1. Depth-First Search (DFS) - Systematic exploration with backtracking
-2. Left Wall Following - Classic left-hand maze navigation
-3. Right Wall Following - Classic right-hand maze navigation  
-4. Smart Wall Following - Enhanced wall following with mapping memory
+2. Breadth-First Search (BFS) - Level-by-level exploration for shortest path
+3. A* Search - Heuristic-guided optimal pathfinding
+4. Flood Fill - Distance-based exploration with optimal path reconstruction
+5. Left Wall Following - Classic left-hand maze navigation
+6. Right Wall Following - Classic right-hand maze navigation  
+7. Smart Wall Following - Enhanced wall following with mapping memory
 
 Author: Keshav Chaurasia, Mark, Chris, David
 Date: July 2025
@@ -72,7 +75,7 @@ class NavigationAlgorithms:
         path_history.append(current_cell)
         
         step_count = 0
-        max_steps = 1000
+        max_steps = 10000
         
         print(f"Starting from {start_cell}, target: {end_cell}")
         
@@ -166,6 +169,1005 @@ class NavigationAlgorithms:
         }
         
         self.visualizer.print_results(result, visited, path_stack)
+        return success
+    
+    def run_bfs(self, start_cell=None, end_cell=(11, 11)):
+        """
+        Run Breadth-First Search algorithm.
+        
+        This implementation properly handles physical robot limitations:
+        1. Explores maze systematically while building obstacle map
+        2. Uses true BFS on discovered accessible areas
+        3. Ensures all movements respect obstacles and adjacency
+        
+        Args:
+            start_cell (tuple): Starting cell coordinates, None for current position
+            end_cell (tuple): Target cell coordinates
+            
+        Returns:
+            bool: True if target reached, False otherwise
+        """
+        print("=== Starting Breadth-First Search ===")
+        print("Goal: Find shortest path using level-by-level exploration")
+        
+        # Initialize starting position
+        if start_cell is None:
+            start_cell = self.robot.get_current_cell()
+        
+        if start_cell is None:
+            print("ERROR: Cannot get starting position!")
+            return False
+        
+        print(f"Starting from {start_cell}, target: {end_cell}")
+        
+        # Data structures for exploration and pathfinding
+        explored_cells = set()  # Cells we've physically visited
+        accessible_from = {}    # cell -> {adjacent_cells_we_can_reach}
+        parent_path = {}        # For backtracking during exploration
+        
+        # BFS exploration using actual robot movement
+        from collections import deque
+        exploration_queue = deque([start_cell])  # Just store the cell to explore
+        explored_cells.add(start_cell)
+        
+        current_robot_pos = start_cell
+        step_count = 0
+        max_exploration_steps = 500
+        
+        print("\n=== Phase 1: BFS Exploration ===")
+        
+        while exploration_queue and step_count < max_exploration_steps:
+            step_count += 1
+            target_cell = exploration_queue.popleft()
+            
+            print(f"\nStep {step_count}: Exploring {target_cell}")
+            
+            # Move robot to target cell if not already there
+            if current_robot_pos != target_cell:
+                # Find path to target using already explored connections
+                path_to_target = self._find_safe_path(current_robot_pos, target_cell, accessible_from)
+                
+                if path_to_target is None or len(path_to_target) < 2:
+                    print(f"Could not find path from {current_robot_pos} to {target_cell}")
+                    continue
+                
+                # Execute path step by step (skip first element as it's current position)
+                for i in range(1, len(path_to_target)):
+                    next_pos = path_to_target[i]
+                    prev_pos = path_to_target[i-1]
+                    
+                    # Calculate direction to next position
+                    dx = next_pos[0] - prev_pos[0]
+                    dy = next_pos[1] - prev_pos[1]
+                    
+                    # Ensure it's an adjacent move
+                    if abs(dx) + abs(dy) != 1:
+                        print(f"ERROR: Invalid path step from {prev_pos} to {next_pos}")
+                        break
+                    
+                    # Determine direction
+                    if dx == 1:
+                        direction = 'right'
+                    elif dx == -1:
+                        direction = 'left'
+                    elif dy == 1:
+                        direction = 'up'
+                    elif dy == -1:
+                        direction = 'down'
+                    else:
+                        print(f"ERROR: Invalid direction calculation")
+                        break
+                    
+                    # Execute movement
+                    print(f"  Moving {direction} from {prev_pos} to {next_pos}")
+                    if not self._execute_directional_move(direction):
+                        print(f"  Failed to move {direction} - path blocked!")
+                        break
+                    
+                    current_robot_pos = self.robot.get_current_cell() or next_pos
+                    
+                    if current_robot_pos != next_pos:
+                        print(f"  Robot ended up at {current_robot_pos} instead of {next_pos}")
+                        break
+                
+                # Verify we reached the target
+                if current_robot_pos != target_cell:
+                    print(f"Could not reach {target_cell}, robot at {current_robot_pos}")
+                    continue
+            
+            # Initialize adjacency for this cell
+            if target_cell not in accessible_from:
+                accessible_from[target_cell] = set()
+            
+            # Check if target found
+            if target_cell == end_cell:
+                print(f"TARGET FOUND at step {step_count}!")
+                break
+            
+            # Explore neighbors from current position
+            sensors = self.robot.get_sensor_readings()
+            print(f"  Sensor readings: {sensors}")
+            
+            moves = [
+                ('right', (1, 0), 'right'),
+                ('up', (0, 1), 'front'),
+                ('left', (-1, 0), 'left'),
+                ('down', (0, -1), 'back')
+            ]
+            
+            new_neighbors = 0
+            
+            for direction, (dx, dy), sensor_key in moves:
+                neighbor = (target_cell[0] + dx, target_cell[1] + dy)
+                
+                # Check bounds
+                if not self._is_valid_cell(neighbor):
+                    continue
+                
+                # Check for wall
+                if self._is_wall_detected(sensor_key, sensors):
+                    print(f"    Wall detected {direction} to {neighbor}")
+                    continue
+                
+                # Add to adjacency (bidirectional)
+                accessible_from[target_cell].add(neighbor)
+                if neighbor not in accessible_from:
+                    accessible_from[neighbor] = set()
+                accessible_from[neighbor].add(target_cell)
+                
+                # Add to exploration queue if not explored
+                if neighbor not in explored_cells:
+                    explored_cells.add(neighbor)
+                    exploration_queue.append(neighbor)
+                    new_neighbors += 1
+                    print(f"    Added neighbor {direction}: {neighbor}")
+            
+            print(f"  Added {new_neighbors} new neighbors. Queue size: {len(exploration_queue)}")
+        
+        print(f"\nExploration complete. Explored {len(explored_cells)} cells.")
+        
+        # Check if target is reachable
+        if end_cell not in explored_cells:
+            print("ERROR: Target is not reachable!")
+            result = {
+                'algorithm': 'BFS',
+                'success': False,
+                'steps': step_count,
+                'visited_count': len(explored_cells),
+                'final_position': current_robot_pos
+            }
+            self.visualizer.print_results(result, explored_cells)
+            return False
+        
+        # Phase 2: Find shortest path using BFS on explored graph
+        print("\n=== Phase 2: BFS Shortest Path ===")
+        
+        path_queue = deque([(start_cell, [start_cell])])
+        path_visited = set([start_cell])
+        shortest_path = None
+        
+        while path_queue:
+            current_cell, path = path_queue.popleft()
+            
+            if current_cell == end_cell:
+                shortest_path = path
+                print(f"Found shortest path with {len(path)} steps!")
+                break
+            
+            # Explore accessible neighbors
+            for neighbor in accessible_from.get(current_cell, set()):
+                if neighbor not in path_visited:
+                    path_visited.add(neighbor)
+                    new_path = path + [neighbor]
+                    path_queue.append((neighbor, new_path))
+        
+        if shortest_path is None:
+            print("ERROR: No path found in explored area!")
+            result = {
+                'algorithm': 'BFS',
+                'success': False,
+                'steps': step_count,
+                'visited_count': len(explored_cells),
+                'final_position': current_robot_pos
+            }
+            self.visualizer.print_results(result, explored_cells)
+            return False
+        
+        # Phase 3: Execute shortest path with obstacle-aware backtracking
+        print(f"\n=== Phase 3: Executing Shortest Path ===")
+        print(f"Shortest path: {shortest_path}")
+        
+        # First, navigate back to start using DFS backtracking (safe path)
+        if current_robot_pos != start_cell:
+            print(f"Navigating back to start from {current_robot_pos}")
+            
+            # Use DFS to find path back to start through explored cells
+            back_path = self._find_safe_path(current_robot_pos, start_cell, accessible_from)
+            
+            if back_path is None:
+                print("ERROR: Cannot find safe path back to start!")
+                return False
+            
+            # Execute path back to start
+            for i in range(1, len(back_path)):
+                next_cell = back_path[i]
+                prev_cell = back_path[i-1]
+                
+                dx = next_cell[0] - prev_cell[0]
+                dy = next_cell[1] - prev_cell[1]
+                
+                if dx == 1:
+                    direction = 'right'
+                elif dx == -1:
+                    direction = 'left'
+                elif dy == 1:
+                    direction = 'up'
+                elif dy == -1:
+                    direction = 'down'
+                else:
+                    print(f"ERROR: Invalid backtrack step from {prev_cell} to {next_cell}")
+                    return False
+                
+                if not self._execute_directional_move(direction):
+                    print(f"ERROR: Failed to backtrack {direction}")
+                    return False
+                
+                current_robot_pos = self.robot.get_current_cell()
+                print(f"  Backtracked to: {current_robot_pos}")
+        
+        # Now execute the shortest path
+        execution_steps = 0
+        final_cell = start_cell
+        
+        for i in range(1, len(shortest_path)):
+            target_cell = shortest_path[i]
+            prev_cell = shortest_path[i-1]
+            
+            # Calculate direction
+            dx = target_cell[0] - prev_cell[0]
+            dy = target_cell[1] - prev_cell[1]
+            
+            if dx == 1 and dy == 0:
+                direction = 'right'
+            elif dx == -1 and dy == 0:
+                direction = 'left'
+            elif dx == 0 and dy == 1:
+                direction = 'up'
+            elif dx == 0 and dy == -1:
+                direction = 'down'
+            else:
+                print(f"ERROR: Invalid move from {prev_cell} to {target_cell}")
+                break
+            
+            execution_steps += 1
+            print(f"Step {execution_steps}: Moving {direction} to {target_cell}")
+            
+            # Execute the move
+            success = self._execute_directional_move(direction)
+            
+            if success:
+                final_cell = self.robot.get_current_cell() or target_cell
+                print(f"Successfully moved to: {final_cell}")
+                
+                if final_cell == end_cell:
+                    print("TARGET REACHED!")
+                    break
+            else:
+                print(f"Failed to move {direction}")
+                break
+            
+            time.sleep(0.1)  # Visualization delay
+        
+        # Results
+        success = final_cell == end_cell
+        result = {
+            'algorithm': 'BFS',
+            'success': success,
+            'steps': execution_steps,
+            'exploration_steps': step_count,
+            'visited_count': len(explored_cells),
+            'path_length': len(shortest_path),
+            'shortest_path': shortest_path,
+            'final_position': final_cell
+        }
+        
+        self.visualizer.print_results(result, explored_cells, shortest_path)
+        return success
+    
+    def _find_safe_path(self, start, end, accessible_from):
+        """Find a safe path between two cells using explored adjacency map."""
+        if start == end:
+            return [start]
+        
+        from collections import deque
+        queue = deque([(start, [start])])
+        visited = set([start])
+        
+        while queue:
+            current, path = queue.popleft()
+            
+            for neighbor in accessible_from.get(current, set()):
+                if neighbor == end:
+                    return path + [neighbor]
+                
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [neighbor]))
+        
+        return None  # No path found
+    
+    def run_astar(self, start_cell=None, end_cell=(11, 11)):
+        """
+        Run A* Search algorithm.
+        
+        This implementation uses Manhattan distance heuristic and handles
+        physical robot limitations similar to BFS:
+        1. Explores maze systematically while building obstacle map
+        2. Uses A* on discovered accessible areas with heuristic guidance
+        3. Ensures all movements respect obstacles and adjacency
+        
+        Args:
+            start_cell (tuple): Starting cell coordinates, None for current position
+            end_cell (tuple): Target cell coordinates
+            
+        Returns:
+            bool: True if target reached, False otherwise
+        """
+        print("=== Starting A* Search ===")
+        print("Goal: Find optimal path using heuristic-guided search")
+        
+        # Initialize starting position
+        if start_cell is None:
+            start_cell = self.robot.get_current_cell()
+        
+        if start_cell is None:
+            print("ERROR: Cannot get starting position!")
+            return False
+        
+        print(f"Starting from {start_cell}, target: {end_cell}")
+        
+        # Data structures for exploration and pathfinding
+        explored_cells = set()  # Cells we've physically visited
+        accessible_from = {}    # cell -> {adjacent_cells_we_can_reach}
+        
+        # A* exploration using actual robot movement with heuristic priority
+        import heapq
+        from collections import deque
+        
+        def manhattan_distance(cell1, cell2):
+            """Calculate Manhattan distance heuristic."""
+            return abs(cell1[0] - cell2[0]) + abs(cell1[1] - cell2[1])
+        
+        # Priority queue: (f_score, step_count, cell)
+        # f_score = g_score + h_score (actual cost + heuristic)
+        exploration_queue = []
+        heapq.heappush(exploration_queue, (manhattan_distance(start_cell, end_cell), 0, start_cell))
+        explored_cells.add(start_cell)
+        
+        current_robot_pos = start_cell
+        step_count = 0
+        max_exploration_steps = 500
+        
+        print("\n=== Phase 1: A* Exploration ===")
+        
+        while exploration_queue and step_count < max_exploration_steps:
+            step_count += 1
+            
+            # Get cell with lowest f_score
+            f_score, g_score, target_cell = heapq.heappop(exploration_queue)
+            
+            print(f"\nStep {step_count}: Exploring {target_cell} (f={f_score:.1f}, g={g_score})")
+            
+            # Move robot to target cell if not already there
+            if current_robot_pos != target_cell:
+                # Find path to target using already explored connections
+                path_to_target = self._find_safe_path(current_robot_pos, target_cell, accessible_from)
+                
+                if path_to_target is None or len(path_to_target) < 2:
+                    print(f"Could not find path from {current_robot_pos} to {target_cell}")
+                    continue
+                
+                # Execute path step by step (skip first element as it's current position)
+                for i in range(1, len(path_to_target)):
+                    next_pos = path_to_target[i]
+                    prev_pos = path_to_target[i-1]
+                    
+                    # Calculate direction to next position
+                    dx = next_pos[0] - prev_pos[0]
+                    dy = next_pos[1] - prev_pos[1]
+                    
+                    # Ensure it's an adjacent move
+                    if abs(dx) + abs(dy) != 1:
+                        print(f"ERROR: Invalid path step from {prev_pos} to {next_pos}")
+                        break
+                    
+                    # Determine direction
+                    if dx == 1:
+                        direction = 'right'
+                    elif dx == -1:
+                        direction = 'left'
+                    elif dy == 1:
+                        direction = 'up'
+                    elif dy == -1:
+                        direction = 'down'
+                    else:
+                        print(f"ERROR: Invalid direction calculation")
+                        break
+                    
+                    # Execute movement
+                    print(f"  Moving {direction} from {prev_pos} to {next_pos}")
+                    if not self._execute_directional_move(direction):
+                        print(f"  Failed to move {direction} - path blocked!")
+                        break
+                    
+                    current_robot_pos = self.robot.get_current_cell() or next_pos
+                    
+                    if current_robot_pos != next_pos:
+                        print(f"  Robot ended up at {current_robot_pos} instead of {next_pos}")
+                        break
+                
+                # Verify we reached the target
+                if current_robot_pos != target_cell:
+                    print(f"Could not reach {target_cell}, robot at {current_robot_pos}")
+                    continue
+            
+            # Initialize adjacency for this cell
+            if target_cell not in accessible_from:
+                accessible_from[target_cell] = set()
+            
+            # Check if target found
+            if target_cell == end_cell:
+                print(f"TARGET FOUND at step {step_count}!")
+                break
+            
+            # Explore neighbors from current position
+            sensors = self.robot.get_sensor_readings()
+            print(f"  Sensor readings: {sensors}")
+            
+            moves = [
+                ('right', (1, 0), 'right'),
+                ('up', (0, 1), 'front'),
+                ('left', (-1, 0), 'left'),
+                ('down', (0, -1), 'back')
+            ]
+            
+            new_neighbors = 0
+            
+            for direction, (dx, dy), sensor_key in moves:
+                neighbor = (target_cell[0] + dx, target_cell[1] + dy)
+                
+                # Check bounds
+                if not self._is_valid_cell(neighbor):
+                    continue
+                
+                # Check for wall
+                if self._is_wall_detected(sensor_key, sensors):
+                    print(f"    Wall detected {direction} to {neighbor}")
+                    continue
+                
+                # Add to adjacency (bidirectional)
+                accessible_from[target_cell].add(neighbor)
+                if neighbor not in accessible_from:
+                    accessible_from[neighbor] = set()
+                accessible_from[neighbor].add(target_cell)
+                
+                # Add to exploration queue if not explored
+                if neighbor not in explored_cells:
+                    explored_cells.add(neighbor)
+                    neighbor_g_score = g_score + 1  # Distance from start
+                    neighbor_h_score = manhattan_distance(neighbor, end_cell)  # Heuristic
+                    neighbor_f_score = neighbor_g_score + neighbor_h_score
+                    
+                    heapq.heappush(exploration_queue, (neighbor_f_score, neighbor_g_score, neighbor))
+                    new_neighbors += 1
+                    print(f"    Added neighbor {direction}: {neighbor} (f={neighbor_f_score:.1f})")
+            
+            print(f"  Added {new_neighbors} new neighbors. Queue size: {len(exploration_queue)}")
+        
+        print(f"\nExploration complete. Explored {len(explored_cells)} cells.")
+        
+        # Check if target is reachable
+        if end_cell not in explored_cells:
+            print("ERROR: Target is not reachable!")
+            result = {
+                'algorithm': 'A*',
+                'success': False,
+                'steps': step_count,
+                'visited_count': len(explored_cells),
+                'final_position': current_robot_pos
+            }
+            self.visualizer.print_results(result, explored_cells)
+            return False
+        
+        # Phase 2: Find optimal path using A* on explored graph
+        print("\n=== Phase 2: A* Optimal Path ===")
+        
+        # A* pathfinding on discovered graph
+        path_queue = []  # (f_score, g_score, cell, path)
+        heapq.heappush(path_queue, (manhattan_distance(start_cell, end_cell), 0, start_cell, [start_cell]))
+        path_visited = set([start_cell])
+        optimal_path = None
+        
+        while path_queue:
+            f_score, g_score, current_cell, path = heapq.heappop(path_queue)
+            
+            if current_cell == end_cell:
+                optimal_path = path
+                print(f"Found optimal path with {len(path)} steps!")
+                break
+            
+            # Explore accessible neighbors
+            for neighbor in accessible_from.get(current_cell, set()):
+                if neighbor not in path_visited:
+                    path_visited.add(neighbor)
+                    new_g_score = g_score + 1
+                    new_h_score = manhattan_distance(neighbor, end_cell)
+                    new_f_score = new_g_score + new_h_score
+                    new_path = path + [neighbor]
+                    heapq.heappush(path_queue, (new_f_score, new_g_score, neighbor, new_path))
+        
+        if optimal_path is None:
+            print("ERROR: No path found in explored area!")
+            result = {
+                'algorithm': 'A*',
+                'success': False,
+                'steps': step_count,
+                'visited_count': len(explored_cells),
+                'final_position': current_robot_pos
+            }
+            self.visualizer.print_results(result, explored_cells)
+            return False
+        
+        # Phase 3: Execute optimal path with obstacle-aware backtracking
+        print(f"\n=== Phase 3: Executing Optimal Path ===")
+        print(f"Optimal path: {optimal_path}")
+        
+        # First, navigate back to start using safe path
+        if current_robot_pos != start_cell:
+            print(f"Navigating back to start from {current_robot_pos}")
+            
+            # Use pathfinding to find path back to start through explored cells
+            back_path = self._find_safe_path(current_robot_pos, start_cell, accessible_from)
+            
+            if back_path is None:
+                print("ERROR: Cannot find safe path back to start!")
+                return False
+            
+            # Execute path back to start
+            for i in range(1, len(back_path)):
+                next_cell = back_path[i]
+                prev_cell = back_path[i-1]
+                
+                dx = next_cell[0] - prev_cell[0]
+                dy = next_cell[1] - prev_cell[1]
+                
+                if dx == 1:
+                    direction = 'right'
+                elif dx == -1:
+                    direction = 'left'
+                elif dy == 1:
+                    direction = 'up'
+                elif dy == -1:
+                    direction = 'down'
+                else:
+                    print(f"ERROR: Invalid backtrack step from {prev_cell} to {next_cell}")
+                    return False
+                
+                if not self._execute_directional_move(direction):
+                    print(f"ERROR: Failed to backtrack {direction}")
+                    return False
+                
+                current_robot_pos = self.robot.get_current_cell()
+                print(f"  Backtracked to: {current_robot_pos}")
+        
+        # Now execute the optimal path
+        execution_steps = 0
+        final_cell = start_cell
+        
+        for i in range(1, len(optimal_path)):
+            target_cell = optimal_path[i]
+            prev_cell = optimal_path[i-1]
+            
+            # Calculate direction
+            dx = target_cell[0] - prev_cell[0]
+            dy = target_cell[1] - prev_cell[1]
+            
+            if dx == 1 and dy == 0:
+                direction = 'right'
+            elif dx == -1 and dy == 0:
+                direction = 'left'
+            elif dx == 0 and dy == 1:
+                direction = 'up'
+            elif dx == 0 and dy == -1:
+                direction = 'down'
+            else:
+                print(f"ERROR: Invalid move from {prev_cell} to {target_cell}")
+                break
+            
+            execution_steps += 1
+            print(f"Step {execution_steps}: Moving {direction} to {target_cell}")
+            
+            # Execute the move
+            success = self._execute_directional_move(direction)
+            
+            if success:
+                final_cell = self.robot.get_current_cell() or target_cell
+                print(f"Successfully moved to: {final_cell}")
+                
+                if final_cell == end_cell:
+                    print("TARGET REACHED!")
+                    break
+            else:
+                print(f"Failed to move {direction}")
+                break
+            
+            time.sleep(0.1)  # Visualization delay
+        
+        # Results
+        success = final_cell == end_cell
+        result = {
+            'algorithm': 'A*',
+            'success': success,
+            'steps': execution_steps,
+            'exploration_steps': step_count,
+            'visited_count': len(explored_cells),
+            'path_length': len(optimal_path),
+            'optimal_path': optimal_path,
+            'final_position': final_cell
+        }
+        
+        self.visualizer.print_results(result, explored_cells, optimal_path)
+        return success
+    
+    def run_flood_fill(self, start_cell=None, end_cell=(11, 11)):
+        """
+        Run Flood Fill algorithm.
+        
+        This implementation uses distance-based exploration and handles
+        physical robot limitations similar to BFS and A*:
+        1. Explores maze systematically while building obstacle map
+        2. Assigns distance values to each accessible cell from target
+        3. Finds optimal path by following gradient descent back to start
+        4. Ensures all movements respect obstacles and adjacency
+        
+        Args:
+            start_cell (tuple): Starting cell coordinates, None for current position
+            end_cell (tuple): Target cell coordinates
+            
+        Returns:
+            bool: True if target reached, False otherwise
+        """
+        print("=== Starting Flood Fill Algorithm ===")
+        print("Goal: Find optimal path using distance-based flooding")
+        
+        # Initialize starting position
+        if start_cell is None:
+            start_cell = self.robot.get_current_cell()
+        
+        if start_cell is None:
+            print("ERROR: Cannot get starting position!")
+            return False
+        
+        print(f"Starting from {start_cell}, target: {end_cell}")
+        
+        # Data structures for exploration and pathfinding
+        explored_cells = set()  # Cells we've physically visited
+        accessible_from = {}    # cell -> {adjacent_cells_we_can_reach}
+        distance_map = {}       # cell -> distance_from_target
+        
+        # Flood fill exploration using actual robot movement
+        from collections import deque
+        exploration_queue = deque([start_cell])
+        explored_cells.add(start_cell)
+        
+        current_robot_pos = start_cell
+        step_count = 0
+        max_exploration_steps = 500
+        
+        print("\n=== Phase 1: Flood Fill Exploration ===")
+        
+        while exploration_queue and step_count < max_exploration_steps:
+            step_count += 1
+            target_cell = exploration_queue.popleft()
+            
+            print(f"\nStep {step_count}: Exploring {target_cell}")
+            
+            # Move robot to target cell if not already there
+            if current_robot_pos != target_cell:
+                # Find path to target using already explored connections
+                path_to_target = self._find_safe_path(current_robot_pos, target_cell, accessible_from)
+                
+                if path_to_target is None or len(path_to_target) < 2:
+                    print(f"Could not find path from {current_robot_pos} to {target_cell}")
+                    continue
+                
+                # Execute path step by step (skip first element as it's current position)
+                for i in range(1, len(path_to_target)):
+                    next_pos = path_to_target[i]
+                    prev_pos = path_to_target[i-1]
+                    
+                    # Calculate direction to next position
+                    dx = next_pos[0] - prev_pos[0]
+                    dy = next_pos[1] - prev_pos[1]
+                    
+                    # Ensure it's an adjacent move
+                    if abs(dx) + abs(dy) != 1:
+                        print(f"ERROR: Invalid path step from {prev_pos} to {next_pos}")
+                        break
+                    
+                    # Determine direction
+                    if dx == 1:
+                        direction = 'right'
+                    elif dx == -1:
+                        direction = 'left'
+                    elif dy == 1:
+                        direction = 'up'
+                    elif dy == -1:
+                        direction = 'down'
+                    else:
+                        print(f"ERROR: Invalid direction calculation")
+                        break
+                    
+                    # Execute movement
+                    print(f"  Moving {direction} from {prev_pos} to {next_pos}")
+                    if not self._execute_directional_move(direction):
+                        print(f"  Failed to move {direction} - path blocked!")
+                        break
+                    
+                    current_robot_pos = self.robot.get_current_cell() or next_pos
+                    
+                    if current_robot_pos != next_pos:
+                        print(f"  Robot ended up at {current_robot_pos} instead of {next_pos}")
+                        break
+                
+                # Verify we reached the target
+                if current_robot_pos != target_cell:
+                    print(f"Could not reach {target_cell}, robot at {current_robot_pos}")
+                    continue
+            
+            # Initialize adjacency for this cell
+            if target_cell not in accessible_from:
+                accessible_from[target_cell] = set()
+            
+            # Check if target found
+            if target_cell == end_cell:
+                print(f"TARGET FOUND at step {step_count}!")
+                break
+            
+            # Explore neighbors from current position
+            sensors = self.robot.get_sensor_readings()
+            print(f"  Sensor readings: {sensors}")
+            
+            moves = [
+                ('right', (1, 0), 'right'),
+                ('up', (0, 1), 'front'),
+                ('left', (-1, 0), 'left'),
+                ('down', (0, -1), 'back')
+            ]
+            
+            new_neighbors = 0
+            
+            for direction, (dx, dy), sensor_key in moves:
+                neighbor = (target_cell[0] + dx, target_cell[1] + dy)
+                
+                # Check bounds
+                if not self._is_valid_cell(neighbor):
+                    continue
+                
+                # Check for wall
+                if self._is_wall_detected(sensor_key, sensors):
+                    print(f"    Wall detected {direction} to {neighbor}")
+                    continue
+                
+                # Add to adjacency (bidirectional)
+                accessible_from[target_cell].add(neighbor)
+                if neighbor not in accessible_from:
+                    accessible_from[neighbor] = set()
+                accessible_from[neighbor].add(target_cell)
+                
+                # Add to exploration queue if not explored
+                if neighbor not in explored_cells:
+                    explored_cells.add(neighbor)
+                    exploration_queue.append(neighbor)
+                    new_neighbors += 1
+                    print(f"    Added neighbor {direction}: {neighbor}")
+            
+            print(f"  Added {new_neighbors} new neighbors. Queue size: {len(exploration_queue)}")
+        
+        print(f"\nExploration complete. Explored {len(explored_cells)} cells.")
+        
+        # Check if target is reachable
+        if end_cell not in explored_cells:
+            print("ERROR: Target is not reachable!")
+            result = {
+                'algorithm': 'Flood Fill',
+                'success': False,
+                'steps': step_count,
+                'visited_count': len(explored_cells),
+                'final_position': current_robot_pos
+            }
+            self.visualizer.print_results(result, explored_cells)
+            return False
+        
+        # Phase 2: Build distance map using flood fill from target
+        print("\n=== Phase 2: Building Distance Map ===")
+        
+        # Initialize distance map with target at distance 0
+        distance_map[end_cell] = 0
+        flood_queue = deque([end_cell])
+        
+        print(f"Starting flood fill from target {end_cell}")
+        
+        while flood_queue:
+            current_cell = flood_queue.popleft()
+            current_distance = distance_map[current_cell]
+            
+            # Flood to all accessible neighbors
+            for neighbor in accessible_from.get(current_cell, set()):
+                if neighbor not in distance_map:
+                    distance_map[neighbor] = current_distance + 1
+                    flood_queue.append(neighbor)
+                    print(f"  Distance {current_distance + 1}: {neighbor}")
+        
+        print(f"Distance map built for {len(distance_map)} cells.")
+        
+        # Check if start is reachable from target
+        if start_cell not in distance_map:
+            print("ERROR: Start cell not reachable from target!")
+            result = {
+                'algorithm': 'Flood Fill',
+                'success': False,
+                'steps': step_count,
+                'visited_count': len(explored_cells),
+                'final_position': current_robot_pos
+            }
+            self.visualizer.print_results(result, explored_cells)
+            return False
+        
+        # Phase 3: Find optimal path using gradient descent
+        print("\n=== Phase 3: Finding Optimal Path ===")
+        
+        optimal_path = [start_cell]
+        current_cell = start_cell
+        
+        print(f"Following gradient from start {start_cell} (distance: {distance_map[start_cell]})")
+        
+        while current_cell != end_cell:
+            current_distance = distance_map[current_cell]
+            best_neighbor = None
+            best_distance = float('inf')
+            
+            # Find neighbor with smallest distance (steepest gradient)
+            for neighbor in accessible_from.get(current_cell, set()):
+                if neighbor in distance_map:
+                    neighbor_distance = distance_map[neighbor]
+                    if neighbor_distance < best_distance:
+                        best_distance = neighbor_distance
+                        best_neighbor = neighbor
+            
+            if best_neighbor is None:
+                print(f"ERROR: No path forward from {current_cell}")
+                break
+            
+            optimal_path.append(best_neighbor)
+            current_cell = best_neighbor
+            print(f"  Next step: {current_cell} (distance: {distance_map[current_cell]})")
+        
+        if current_cell != end_cell:
+            print("ERROR: Could not find complete path to target!")
+            result = {
+                'algorithm': 'Flood Fill',
+                'success': False,
+                'steps': step_count,
+                'visited_count': len(explored_cells),
+                'final_position': current_robot_pos
+            }
+            self.visualizer.print_results(result, explored_cells)
+            return False
+        
+        print(f"Optimal path found with {len(optimal_path)} steps!")
+        print(f"Optimal path: {optimal_path}")
+        
+        # Phase 4: Execute optimal path with obstacle-aware backtracking
+        print(f"\n=== Phase 4: Executing Optimal Path ===")
+        
+        # First, navigate back to start using safe path
+        if current_robot_pos != start_cell:
+            print(f"Navigating back to start from {current_robot_pos}")
+            
+            # Use pathfinding to find path back to start through explored cells
+            back_path = self._find_safe_path(current_robot_pos, start_cell, accessible_from)
+            
+            if back_path is None:
+                print("ERROR: Cannot find safe path back to start!")
+                return False
+            
+            # Execute path back to start
+            for i in range(1, len(back_path)):
+                next_cell = back_path[i]
+                prev_cell = back_path[i-1]
+                
+                dx = next_cell[0] - prev_cell[0]
+                dy = next_cell[1] - prev_cell[1]
+                
+                if dx == 1:
+                    direction = 'right'
+                elif dx == -1:
+                    direction = 'left'
+                elif dy == 1:
+                    direction = 'up'
+                elif dy == -1:
+                    direction = 'down'
+                else:
+                    print(f"ERROR: Invalid backtrack step from {prev_cell} to {next_cell}")
+                    return False
+                
+                if not self._execute_directional_move(direction):
+                    print(f"ERROR: Failed to backtrack {direction}")
+                    return False
+                
+                current_robot_pos = self.robot.get_current_cell()
+                print(f"  Backtracked to: {current_robot_pos}")
+        
+        # Now execute the optimal path
+        execution_steps = 0
+        final_cell = start_cell
+        
+        for i in range(1, len(optimal_path)):
+            target_cell = optimal_path[i]
+            prev_cell = optimal_path[i-1]
+            
+            # Calculate direction
+            dx = target_cell[0] - prev_cell[0]
+            dy = target_cell[1] - prev_cell[1]
+            
+            if dx == 1 and dy == 0:
+                direction = 'right'
+            elif dx == -1 and dy == 0:
+                direction = 'left'
+            elif dx == 0 and dy == 1:
+                direction = 'up'
+            elif dx == 0 and dy == -1:
+                direction = 'down'
+            else:
+                print(f"ERROR: Invalid move from {prev_cell} to {target_cell}")
+                break
+            
+            execution_steps += 1
+            current_distance = distance_map.get(target_cell, '?')
+            print(f"Step {execution_steps}: Moving {direction} to {target_cell} (distance: {current_distance})")
+            
+            # Execute the move
+            success = self._execute_directional_move(direction)
+            
+            if success:
+                final_cell = self.robot.get_current_cell() or target_cell
+                print(f"Successfully moved to: {final_cell}")
+                
+                if final_cell == end_cell:
+                    print("TARGET REACHED!")
+                    break
+            else:
+                print(f"Failed to move {direction}")
+                break
+            
+            time.sleep(0.1)  # Visualization delay
+        
+        # Results
+        success = final_cell == end_cell
+        result = {
+            'algorithm': 'Flood Fill',
+            'success': success,
+            'steps': execution_steps,
+            'exploration_steps': step_count,
+            'visited_count': len(explored_cells),
+            'path_length': len(optimal_path),
+            'optimal_path': optimal_path,
+            'distance_map_size': len(distance_map),
+            'final_position': final_cell
+        }
+        
+        self.visualizer.print_results(result, explored_cells, optimal_path)
         return success
     
     def run_left_wall_following(self, start_cell=None, end_cell=(11, 11)):

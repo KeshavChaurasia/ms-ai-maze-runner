@@ -20,7 +20,7 @@ class Config:
     """
     
     # === SIMULATION TIMING PARAMETERS ===
-    TIME_STEP = 64 # Simulation time step in milliseconds
+    TIME_STEP = 32  # Simulation time step in milliseconds
                     # Controls the frequency of robot controller updates
                     # Lower values = higher precision but more computational load
                     # Typical range: 32-128ms for real-time performance
@@ -49,13 +49,6 @@ class Config:
                           # Higher values reduce console output verbosity
                           # Useful for monitoring robot behavior during development
                           # Set to 0 to disable debug output entirely
-    
-    # === SENSOR CONFIGURATION PARAMETERS ===
-    SENSOR_THRESHOLD = 380  # Distance sensor threshold value for wall detection
-                            # Raw sensor reading below this value indicates
-                            # an obstacle or wall is detected
-                            # Value depends on sensor type and maze wall material
-                            # Typically calibrated through experimental testing
     
     # === SENSOR CONFIGURATION PARAMETERS ===
     SENSOR_THRESHOLD = 400  # Distance sensor threshold value

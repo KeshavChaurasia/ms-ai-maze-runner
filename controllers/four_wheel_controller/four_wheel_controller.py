@@ -15,6 +15,9 @@ Usage Example:
     controller.run_left_wall_following()
     controller.run_right_wall_following()
     controller.run_smart_wall_following()
+    controller.run_bfs()
+    controller.run_astar()
+    controller.run_flood_fill()
 
 Author: Keshav Chaurasia, Mark, Chris, David
 Date: July 2025
@@ -78,6 +81,93 @@ class MazeController:
         """
         return self.robot.wait_for_gps()
     
+    def run_bfs(self, start_cell=None, end_cell=(11, 11)):
+        """
+        Run Breadth-First Search algorithm.
+        
+        Args:
+            start_cell (tuple): Starting cell, None for current position
+            end_cell (tuple): Target cell coordinates
+            
+        Returns:
+            bool: True if target reached, False otherwise
+        """
+        if not self.algorithms:
+            print("ERROR: Controller not initialized!")
+            return False
+        
+        start_time = time.time()
+        result = self.algorithms.run_bfs(start_cell, end_cell)
+        execution_time = time.time() - start_time
+        
+        # Store result for comparison
+        result_data = {
+            'algorithm': 'DFS',
+            'success': result,
+            'execution_time': execution_time
+        }
+        self.results_history.append(result_data)
+        
+        return result
+
+    def run_astar(self, start_cell=None, end_cell=(11, 11)):
+        """
+        Run Breadth-First Search algorithm.
+        
+        Args:
+            start_cell (tuple): Starting cell, None for current position
+            end_cell (tuple): Target cell coordinates
+            
+        Returns:
+            bool: True if target reached, False otherwise
+        """
+        if not self.algorithms:
+            print("ERROR: Controller not initialized!")
+            return False
+        
+        start_time = time.time()
+        result = self.algorithms.run_astar(start_cell, end_cell)
+        execution_time = time.time() - start_time
+        
+        # Store result for comparison
+        result_data = {
+            'algorithm': 'DFS',
+            'success': result,
+            'execution_time': execution_time
+        }
+        self.results_history.append(result_data)
+        
+        return result
+
+    def run_flood_fill(self, start_cell=None, end_cell=(11, 11)):
+        """
+        Run Breadth-First Search algorithm.
+        
+        Args:
+            start_cell (tuple): Starting cell, None for current position
+            end_cell (tuple): Target cell coordinates
+            
+        Returns:
+            bool: True if target reached, False otherwise
+        """
+        if not self.algorithms:
+            print("ERROR: Controller not initialized!")
+            return False
+        
+        start_time = time.time()
+        result = self.algorithms.run_flood_fill(start_cell, end_cell)
+        execution_time = time.time() - start_time
+        
+        # Store result for comparison
+        result_data = {
+            'algorithm': 'DFS',
+            'success': result,
+            'execution_time': execution_time
+        }
+        self.results_history.append(result_data)
+        
+        return result
+
     def run_dfs(self, start_cell=None, end_cell=(11, 11)):
         """
         Run Depth-First Search algorithm.
@@ -220,5 +310,5 @@ if __name__ == "__main__":
     controller = MazeController()
     controller.initialize()
     controller.wait_for_gps()
-    controller.run_right_wall_following()
+    controller.run_flood_fill()
     controller.stop()
