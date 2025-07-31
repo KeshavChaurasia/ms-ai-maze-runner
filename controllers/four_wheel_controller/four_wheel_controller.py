@@ -310,5 +310,5 @@ if __name__ == "__main__":
     controller = MazeController()
     controller.initialize()
     controller.wait_for_gps()
-    controller.run_flood_fill()
+    controller.run_bfs()
     controller.stop()

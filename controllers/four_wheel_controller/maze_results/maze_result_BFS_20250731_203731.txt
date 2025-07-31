@@ -1,8 +1,8 @@
 Maze Navigation Results
 ==================================================
 
-Algorithm: Flood Fill
-Timestamp: 2025-07-31 19:56:21
+Algorithm: BFS
+Timestamp: 2025-07-31 20:37:31
 Success: YES
 Final Position: (11, 11)
 

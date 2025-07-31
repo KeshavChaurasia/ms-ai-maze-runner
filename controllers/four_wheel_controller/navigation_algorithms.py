@@ -22,6 +22,10 @@ Academic Project: Maze Navigation with Four-Wheel Robot
 from config import Config
 from maze_visualizer import MazeVisualizer
 import time
+import logging
+import heapq
+import os
+from datetime import datetime
 
 
 class NavigationAlgorithms:
@@ -42,6 +46,115 @@ class NavigationAlgorithms:
         """
         self.robot = robot
         self.visualizer = visualizer or MazeVisualizer()
+        self._setup_logging()
+    
+    def _setup_logging(self):
+        """Setup detailed logging for navigation algorithms."""
+        # Create logs directory if it doesn't exist
+        if not os.path.exists("logs"):
+            os.makedirs("logs")
+        
+        # Create unique log filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_filename = f"logs/navigation_detailed_{timestamp}.log"
+        
+        # Setup logger
+        self.logger = logging.getLogger(f'NavigationAlgorithms_{timestamp}')
+        self.logger.setLevel(logging.DEBUG)
+        
+        # Remove any existing handlers
+        for handler in self.logger.handlers[:]:
+            self.logger.removeHandler(handler)
+        
+        # Create file handler
+        file_handler = logging.FileHandler(log_filename)
+        file_handler.setLevel(logging.DEBUG)
+        
+        # Create console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        
+        # Create formatter
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
+        
+        # Add handlers to logger
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
+        
+        self.logger.info(f"Logging initialized. Log file: {log_filename}")
+    
+    def _log_data_structures(self, step_count, current_cell, **kwargs):
+        """Log all data structures at current step."""
+        log_msg = f"\n=== STEP {step_count} DATA STRUCTURES ===\n"
+        log_msg += f"Current Cell: {current_cell}\n"
+        
+        for name, data in kwargs.items():
+            if data is not None:
+                if isinstance(data, set):
+                    log_msg += f"{name}: {sorted(list(data))}\n"
+                elif isinstance(data, dict):
+                    if name == 'accessible_from':
+                        log_msg += f"{name}:\n"
+                        for cell, neighbors in sorted(data.items()):
+                            log_msg += f"  {cell} -> {sorted(list(neighbors))}\n"
+                    elif name == 'distance_map':
+                        log_msg += f"{name}:\n"
+                        for cell, distance in sorted(data.items()):
+                            log_msg += f"  {cell}: {distance}\n"
+                    else:
+                        log_msg += f"{name}: {dict(sorted(data.items()))}\n"
+                elif isinstance(data, list):
+                    log_msg += f"{name}: {data}\n"
+                else:
+                    log_msg += f"{name}: {data}\n"
+        
+        self.logger.debug(log_msg)
+    
+    def _log_visual_board(self, visited_cells, current_cell, path=None, step_count=0, algorithm=""):
+        """Log visual representation of the maze board."""
+        board_str = f"\n=== VISUAL BOARD - STEP {step_count} - {algorithm} ===\n"
+        board_str += "   0  1  2  3  4  5  6  7  8  9 10 11\n"
+        
+        for y in range(11, -1, -1):  # Start from top (y=11) and go down
+            board_str += f"{y:2d} "
+            for x in range(12):
+                cell = (x, y)
+                if cell == current_cell:
+                    board_str += "R  "  # Robot position
+                elif path and cell in path:
+                    board_str += "P  "  # Path
+                elif cell in visited_cells:
+                    board_str += "V  "  # Visited
+                else:
+                    board_str += ".  "  # Unvisited
+            board_str += f" {y:2d}\n"
+        
+        board_str += "   0  1  2  3  4  5  6  7  8  9 10 11\n"
+        board_str += "Legend: R=Robot, V=Visited, P=Path, .=Unvisited\n"
+        
+        # Log to file
+        self.logger.debug(board_str)
+        
+        # Print to console (simplified version)
+        print(f"\n=== STEP {step_count} - {algorithm} ===")
+        print(f"Current Position: {current_cell}")
+        print(f"Visited Cells: {len(visited_cells)}")
+        if path:
+            print(f"Path Length: {len(path)}")
+    
+    def _comprehensive_log(self, step_count, algorithm, current_cell, **data_structures):
+        """Comprehensive logging combining data structures and visual board."""
+        # Log data structures
+        self._log_data_structures(step_count, current_cell, **data_structures)
+        
+        # Extract visited cells and path for visual board
+        visited = data_structures.get('visited', set()) or data_structures.get('explored_cells', set())
+        path = data_structures.get('path_stack') or data_structures.get('path_history') or data_structures.get('optimal_path')
+        
+        # Log visual board
+        self._log_visual_board(visited, current_cell, path, step_count, algorithm)
     
     def run_dfs(self, start_cell=None, end_cell=(11, 11)):
         """
@@ -78,19 +191,29 @@ class NavigationAlgorithms:
         max_steps = 10000
         
         print(f"Starting from {start_cell}, target: {end_cell}")
+        self.logger.info(f"DFS Algorithm Starting: {start_cell} -> {end_cell}")
+        
+        # Initial comprehensive log
+        self._comprehensive_log(0, "DFS", current_cell, 
+                               visited=visited, 
+                               path_stack=path_stack, 
+                               path_history=path_history)
         
         while current_cell != end_cell and step_count < max_steps:
             step_count += 1
             
+            # Regular progress updates
             if step_count % 50 == 0:
                 self.visualizer.print_progress(visited, current_cell, step_count)
             
             print(f"\n--- Step {step_count} ---")
             print(f"Current cell: {current_cell}")
+            self.logger.info(f"DFS Step {step_count}: Current cell {current_cell}")
             
             # Get sensor readings
             sensors = self.robot.get_sensor_readings()
             print(f"Sensor readings: {sensors}")
+            self.logger.debug(f"Sensor readings: {sensors}")
             
             # Define possible moves in DFS priority order
             moves = [
@@ -120,6 +243,7 @@ class NavigationAlgorithms:
                 
                 # Valid move found - execute it
                 print(f"  Moving {direction} to cell: {next_cell}")
+                self.logger.debug(f"  Attempting move {direction} to {next_cell}")
                 
                 success = self._execute_directional_move(direction)
                 
@@ -130,14 +254,17 @@ class NavigationAlgorithms:
                     path_history.append(current_cell)
                     found_move = True
                     print(f"  Successfully moved to: {current_cell}")
+                    self.logger.info(f"  Successfully moved to: {current_cell}")
                     break
                 else:
                     print(f"  Failed to move {direction}")
+                    self.logger.warning(f"  Failed to move {direction}")
             
             # Backtrack if no valid move found
             if not found_move:
                 if len(path_stack) <= 1:
                     print("ERROR: No more moves available!")
+                    self.logger.error("No more moves available - terminating DFS")
                     break
                 
                 path_stack.pop()  # Remove current cell
@@ -146,14 +273,23 @@ class NavigationAlgorithms:
                 
                 target_cell = path_stack[-1]
                 print(f"  Backtracking to cell: {target_cell}")
+                self.logger.info(f"  Backtracking to cell: {target_cell}")
                 
                 if self.robot.move_to_cell(target_cell[0], target_cell[1], verbose=True):
                     current_cell = target_cell
                     path_history.append(current_cell)
                     print(f"  Backtracked to: {current_cell}")
+                    self.logger.info(f"  Backtracked to: {current_cell}")
                 else:
                     print(f"  Failed to backtrack to: {target_cell}")
+                    self.logger.error(f"  Failed to backtrack to: {target_cell}")
                     break
+            
+            # Comprehensive logging at each step
+            self._comprehensive_log(step_count, "DFS", current_cell, 
+                                   visited=visited, 
+                                   path_stack=path_stack, 
+                                   path_history=path_history)
             
             time.sleep(0.1)  # Visualization delay
         
@@ -168,6 +304,14 @@ class NavigationAlgorithms:
             'final_position': current_cell
         }
         
+        # Final comprehensive log
+        self._comprehensive_log(step_count, "DFS-FINAL", current_cell, 
+                               visited=visited, 
+                               path_stack=path_stack, 
+                               path_history=path_history,
+                               result=result)
+        
+        self.logger.info(f"DFS Algorithm Completed: Success={success}, Steps={step_count}, Visited={len(visited)}")
         self.visualizer.print_results(result, visited, path_stack)
         return success
     
@@ -199,6 +343,7 @@ class NavigationAlgorithms:
             return False
         
         print(f"Starting from {start_cell}, target: {end_cell}")
+        self.logger.info(f"BFS Algorithm Starting: {start_cell} -> {end_cell}")
         
         # Data structures for exploration and pathfinding
         explored_cells = set()  # Cells we've physically visited
@@ -215,12 +360,21 @@ class NavigationAlgorithms:
         max_exploration_steps = 500
         
         print("\n=== Phase 1: BFS Exploration ===")
+        self.logger.info("=== Phase 1: BFS Exploration ===")
+        
+        # Initial comprehensive log
+        self._comprehensive_log(0, "BFS-EXPLORATION", current_robot_pos, 
+                               explored_cells=explored_cells, 
+                               accessible_from=accessible_from, 
+                               parent_path=parent_path,
+                               exploration_queue=list(exploration_queue))
         
         while exploration_queue and step_count < max_exploration_steps:
             step_count += 1
             target_cell = exploration_queue.popleft()
             
             print(f"\nStep {step_count}: Exploring {target_cell}")
+            self.logger.info(f"BFS Exploration Step {step_count}: Exploring {target_cell}")
             
             # Move robot to target cell if not already there
             if current_robot_pos != target_cell:
@@ -229,6 +383,7 @@ class NavigationAlgorithms:
                 
                 if path_to_target is None or len(path_to_target) < 2:
                     print(f"Could not find path from {current_robot_pos} to {target_cell}")
+                    self.logger.warning(f"Could not find path from {current_robot_pos} to {target_cell}")
                     continue
                 
                 # Execute path step by step (skip first element as it's current position)
@@ -243,6 +398,7 @@ class NavigationAlgorithms:
                     # Ensure it's an adjacent move
                     if abs(dx) + abs(dy) != 1:
                         print(f"ERROR: Invalid path step from {prev_pos} to {next_pos}")
+                        self.logger.error(f"Invalid path step from {prev_pos} to {next_pos}")
                         break
                     
                     # Determine direction
@@ -256,23 +412,29 @@ class NavigationAlgorithms:
                         direction = 'down'
                     else:
                         print(f"ERROR: Invalid direction calculation")
+                        self.logger.error(f"Invalid direction calculation")
                         break
                     
                     # Execute movement
                     print(f"  Moving {direction} from {prev_pos} to {next_pos}")
+                    self.logger.debug(f"Moving {direction} from {prev_pos} to {next_pos}")
+                    
                     if not self._execute_directional_move(direction):
                         print(f"  Failed to move {direction} - path blocked!")
+                        self.logger.warning(f"Failed to move {direction} - path blocked!")
                         break
                     
                     current_robot_pos = self.robot.get_current_cell() or next_pos
                     
                     if current_robot_pos != next_pos:
                         print(f"  Robot ended up at {current_robot_pos} instead of {next_pos}")
+                        self.logger.warning(f"Robot ended up at {current_robot_pos} instead of {next_pos}")
                         break
                 
                 # Verify we reached the target
                 if current_robot_pos != target_cell:
                     print(f"Could not reach {target_cell}, robot at {current_robot_pos}")
+                    self.logger.warning(f"Could not reach {target_cell}, robot at {current_robot_pos}")
                     continue
             
             # Initialize adjacency for this cell
@@ -282,11 +444,13 @@ class NavigationAlgorithms:
             # Check if target found
             if target_cell == end_cell:
                 print(f"TARGET FOUND at step {step_count}!")
+                self.logger.info(f"TARGET FOUND at step {step_count}!")
                 break
             
             # Explore neighbors from current position
             sensors = self.robot.get_sensor_readings()
             print(f"  Sensor readings: {sensors}")
+            self.logger.debug(f"Sensor readings: {sensors}")
             
             moves = [
                 ('right', (1, 0), 'right'),
@@ -307,6 +471,7 @@ class NavigationAlgorithms:
                 # Check for wall
                 if self._is_wall_detected(sensor_key, sensors):
                     print(f"    Wall detected {direction} to {neighbor}")
+                    self.logger.debug(f"Wall detected {direction} to {neighbor}")
                     continue
                 
                 # Add to adjacency (bidirectional)
@@ -321,10 +486,20 @@ class NavigationAlgorithms:
                     exploration_queue.append(neighbor)
                     new_neighbors += 1
                     print(f"    Added neighbor {direction}: {neighbor}")
+                    self.logger.debug(f"Added neighbor {direction}: {neighbor}")
             
             print(f"  Added {new_neighbors} new neighbors. Queue size: {len(exploration_queue)}")
+            self.logger.debug(f"Added {new_neighbors} new neighbors. Queue size: {len(exploration_queue)}")
+            
+            # Comprehensive logging at each step
+            self._comprehensive_log(step_count, "BFS-EXPLORATION", current_robot_pos, 
+                                   explored_cells=explored_cells, 
+                                   accessible_from=accessible_from, 
+                                   parent_path=parent_path,
+                                   exploration_queue=list(exploration_queue))
         
         print(f"\nExploration complete. Explored {len(explored_cells)} cells.")
+        self.logger.info(f"BFS Exploration complete. Explored {len(explored_cells)} cells.")
         
         # Check if target is reachable
         if end_cell not in explored_cells:
@@ -471,6 +646,14 @@ class NavigationAlgorithms:
             'final_position': final_cell
         }
         
+        # Final comprehensive log
+        self._comprehensive_log(execution_steps, "BFS-FINAL", final_cell, 
+                               explored_cells=explored_cells, 
+                               accessible_from=accessible_from, 
+                               shortest_path=shortest_path,
+                               result=result)
+        
+        self.logger.info(f"BFS Algorithm Completed: Success={success}, Steps={execution_steps}, Explored={len(explored_cells)}")
         self.visualizer.print_results(result, explored_cells, shortest_path)
         return success
     
@@ -525,14 +708,13 @@ class NavigationAlgorithms:
             return False
         
         print(f"Starting from {start_cell}, target: {end_cell}")
+        self.logger.info(f"A* Algorithm Starting: {start_cell} -> {end_cell}")
         
         # Data structures for exploration and pathfinding
         explored_cells = set()  # Cells we've physically visited
         accessible_from = {}    # cell -> {adjacent_cells_we_can_reach}
         
         # A* exploration using actual robot movement with heuristic priority
-        import heapq
-        from collections import deque
         
         def manhattan_distance(cell1, cell2):
             """Calculate Manhattan distance heuristic."""
@@ -849,6 +1031,7 @@ class NavigationAlgorithms:
             return False
         
         print(f"Starting from {start_cell}, target: {end_cell}")
+        self.logger.info(f"Flood Fill Algorithm Starting: {start_cell} -> {end_cell}")
         
         # Data structures for exploration and pathfinding
         explored_cells = set()  # Cells we've physically visited
@@ -1183,6 +1366,7 @@ class NavigationAlgorithms:
         """
         print("=== Starting Left Wall Following ===")
         print("Goal: Follow left wall to navigate maze")
+        self.logger.info(f"Left Wall Following Algorithm Starting: {start_cell} -> {end_cell}")
         
         if start_cell is None:
             start_cell = self.robot.get_current_cell()
@@ -1203,6 +1387,12 @@ class NavigationAlgorithms:
         step_count = 0
         max_steps = 1000
         
+        # Initial comprehensive log
+        self._comprehensive_log(0, "LEFT_WALL_FOLLOWING", current_cell, 
+                               visited=visited, 
+                               current_direction=current_direction,
+                               direction_name=directions[current_direction])
+        
         while current_cell != end_cell and step_count < max_steps:
             step_count += 1
             visited.add(current_cell)
@@ -1213,8 +1403,10 @@ class NavigationAlgorithms:
             print(f"\n--- Step {step_count} ---")
             print(f"Current cell: {current_cell}")
             print(f"Current direction: {directions[current_direction]}")
+            self.logger.info(f"Left Wall Following Step {step_count}: At {current_cell}, facing {directions[current_direction]}")
             
             sensors = self.robot.get_sensor_readings()
+            self.logger.debug(f"Sensor readings: {sensors}")
             moved = False
             
             # Left wall following algorithm:
@@ -1272,9 +1464,17 @@ class NavigationAlgorithms:
             # Step 4: Turn around if stuck
             if not moved:
                 print("  Dead end: turning around 180 degrees")
+                self.logger.info("  Dead end: turning around 180 degrees")
                 current_direction = (current_direction + 2) % 4
                 print(f"  Now facing: {directions[current_direction]}")
+                self.logger.info(f"  Now facing: {directions[current_direction]}")
                 moved = True
+            
+            # Comprehensive logging at each step
+            self._comprehensive_log(step_count, "LEFT_WALL_FOLLOWING", current_cell, 
+                                   visited=visited, 
+                                   current_direction=current_direction,
+                                   direction_name=directions[current_direction])
             
             time.sleep(0.1)
         
@@ -1287,6 +1487,14 @@ class NavigationAlgorithms:
             'final_position': current_cell
         }
         
+        # Final comprehensive log
+        self._comprehensive_log(step_count, "LEFT_WALL_FOLLOWING-FINAL", current_cell, 
+                               visited=visited, 
+                               current_direction=current_direction,
+                               direction_name=directions[current_direction],
+                               result=result)
+        
+        self.logger.info(f"Left Wall Following Algorithm Completed: Success={success}, Steps={step_count}, Visited={len(visited)}")
         self.visualizer.print_results(result, visited)
         return success
     
@@ -1418,6 +1626,7 @@ class NavigationAlgorithms:
         """
         print("=== Starting Smart Wall Following ===")
         print("Goal: Enhanced wall following with mapping")
+        self.logger.info(f"Smart Wall Following Algorithm Starting: {start_cell} -> {end_cell}")
         
         if start_cell is None:
             start_cell = self.robot.get_current_cell()
@@ -1441,6 +1650,14 @@ class NavigationAlgorithms:
         step_count = 0
         max_steps = 500
         
+        # Initial comprehensive log
+        self._comprehensive_log(0, "SMART_WALL_FOLLOWING", current_cell, 
+                               visited=visited, 
+                               wall_map=wall_map,
+                               path_taken=path_taken,
+                               current_direction=current_direction,
+                               direction_name=directions[current_direction])
+        
         while current_cell != end_cell and step_count < max_steps:
             step_count += 1
             visited.add(current_cell)
@@ -1450,6 +1667,7 @@ class NavigationAlgorithms:
             
             print(f"\n--- Step {step_count} ---")
             print(f"At {current_cell}, facing {directions[current_direction]}")
+            self.logger.info(f"Smart Wall Following Step {step_count}: At {current_cell}, facing {directions[current_direction]}")
             
             # Update wall map with sensor readings
             self._update_wall_map(current_cell, wall_map)
@@ -1461,9 +1679,11 @@ class NavigationAlgorithms:
             
             if next_cell is None:
                 print("No valid moves available!")
+                self.logger.warning("No valid moves available!")
                 break
             
             print(f"Choosing to go {directions[next_direction]} to {next_cell}")
+            self.logger.info(f"Choosing to go {directions[next_direction]} to {next_cell}")
             
             # Execute the move
             if self._execute_directional_move(directions[next_direction]):
@@ -1471,9 +1691,19 @@ class NavigationAlgorithms:
                 current_cell = self.robot.get_current_cell() or next_cell
                 path_taken.append(current_cell)
                 print(f"Successfully moved to: {current_cell}")
+                self.logger.info(f"Successfully moved to: {current_cell}")
             else:
                 print(f"Failed to move {directions[next_direction]}")
+                self.logger.warning(f"Failed to move {directions[next_direction]}")
                 wall_map[(current_cell, next_cell)] = True
+            
+            # Comprehensive logging at each step
+            self._comprehensive_log(step_count, "SMART_WALL_FOLLOWING", current_cell, 
+                                   visited=visited, 
+                                   wall_map=wall_map,
+                                   path_taken=path_taken,
+                                   current_direction=current_direction,
+                                   direction_name=directions[current_direction])
         
         success = current_cell == end_cell
         result = {
@@ -1485,6 +1715,16 @@ class NavigationAlgorithms:
             'final_position': current_cell
         }
         
+        # Final comprehensive log
+        self._comprehensive_log(step_count, "SMART_WALL_FOLLOWING-FINAL", current_cell, 
+                               visited=visited, 
+                               wall_map=wall_map,
+                               path_taken=path_taken,
+                               current_direction=current_direction,
+                               direction_name=directions[current_direction],
+                               result=result)
+        
+        self.logger.info(f"Smart Wall Following Algorithm Completed: Success={success}, Steps={step_count}, Visited={len(visited)}")
         self.visualizer.print_results(result, visited)
         return success
     
