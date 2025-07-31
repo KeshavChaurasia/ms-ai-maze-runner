@@ -1,9 +1,9 @@
-# AI-Powered Maze Navigation with Four-Wheel Robot
-## Academic Robotics Project - Autonomous Navigation Systems
+# Maze Navigation with Four-Wheel Robot
+## Academic Robotics Project - Navigation Systems
 
-This project implements advanced AI-controlled robot navigation algorithms for autonomous maze solving using Webots robotics simulator. The system features a sophisticated four-wheel Mecanum drive robot capable of omnidirectional movement, equipped with multiple pathfinding algorithms and comprehensive performance analysis capabilities.
+This project implements advanced robot navigation algorithms for autonomous maze solving using Webots robotics simulator. The system features a sophisticated four-wheel Mecanum drive robot capable of omnidirectional movement, equipped with multiple pathfinding algorithms and comprehensive performance analysis capabilities.
 
-**Academic Context**: This project demonstrates the integration of classical computer science algorithms with modern robotics systems, showcasing the practical implementation of graph theory, artificial intelligence, and autonomous navigation principles in a controlled maze environment.
+**Academic Context**: This project demonstrates the integration of classical computer science algorithms with modern robotics systems, showcasing the practical implementation of graph theory, and autonomous navigation principles in a controlled maze environment.
 
 ## Project Overview
 
@@ -29,7 +29,7 @@ This project bridges theoretical computer science concepts with practical roboti
 ## Project Architecture
 
 ```
-new-ai-maze-runner/
+ms-ai-maze-runner/
 ├── controllers/
 │   └── four_wheel_controller/           # Main robot control system
 │       ├── four_wheel_controller.py     # Primary controller with all algorithms
@@ -229,7 +229,9 @@ STUCK_THRESHOLD = 50         # Iterations before stuck detection activation
 #### Comparative Analysis:
 1. Modify algorithm selection in `four_wheel_controller.py`:
    ```python
-   self.algorithm = "dfs"  # Options: "dfs", "left_wall", "right_wall", "smart_wall"
+    # Execute the selected navigation algorithm
+    # Currently configured for DFS
+    controller.run_dfs()
    ```
 2. Execute multiple runs for statistical analysis
 3. Review performance logs in `maze_results/` directory

@@ -1897,7 +1897,7 @@ def run_robot():
         return
     
     # Execute the selected navigation algorithm
-    # Currently configured for Smart Wall Following demonstration
+    # Currently configured for DFS
     controller.run_dfs()
 
 
