@@ -10,9 +10,9 @@ The controller manages the interface between kinematic calculations and
 actual motor hardware, ensuring proper initialization and synchronized
 control of all four wheels in the drive system.
 
-Author: [Your Name]
+Author: Keshav Chaurasia, Mark, Chris, David
 Date: July 2025
-Academic Project: AI-Powered Maze Navigation with Four-Wheel Robot
+Academic Project: Maze Navigation with Four-Wheel Robot
 """
 
 

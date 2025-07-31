@@ -183,40 +183,6 @@ The system is architected using modular design principles, separating concerns a
 - **Cell Coverage**: Percentage of maze explored during navigation
 - **Backtracking Frequency**: Number of revisited cells indicating algorithm efficiency
 
-## Technical Implementation Details
-
-### System Parameters
-
-**Motor Control Configuration:**
-```python
-MAX_SPEED = 8.0              # Maximum motor speed (rad/s) - optimized for stability
-TIME_STEP = 64               # Control loop frequency (ms) - real-time performance
-SAFE_DISTANCE = 800.0        # Obstacle avoidance threshold (sensor units)
-CRUISE_SPEED = 4.8           # Normal operation speed (60% of maximum)
-```
-
-**Sensor Configuration:**
-```python
-SENSOR_THRESHOLD = 1000.0    # Distance sensor activation threshold
-SENSOR_NAMES = ['front_sensor', 'right_sensor', 'back_sensor', 'left_sensor']
-GPS_PRECISION = 0.01         # GPS measurement accuracy (meters)
-COMPASS_RESOLUTION = 0.1     # Heading measurement precision (degrees)
-```
-
-**Algorithm Parameters:**
-```python
-POSITION_TOLERANCE = 0.15    # Target achievement threshold (meters)
-TURN_THRESHOLD = 0.1         # Orientation accuracy requirement (radians)
-STUCK_THRESHOLD = 50         # Iterations before stuck detection activation
-```
-
-## Getting Started
-
-### Prerequisites and Installation
-- **Webots Simulator**: R2023b or later (Free academic license available)
-- **Python Environment**: 3.8+ (included with Webots installation)
-- **Operating System**: Windows 10+, macOS 10.15+, or Linux Ubuntu 18.04+
-
 ### Running Academic Simulations
 
 #### Basic Algorithm Testing:
@@ -267,25 +233,6 @@ The system includes comprehensive performance logging and analysis capabilities 
 2. **Smart Wall Following**: Balanced performance with adaptive learning capabilities
 3. **Left/Right Wall Following**: Consistent performance, moderate efficiency
 4. **Basic Wall Following**: Reliable but potentially suboptimal path selection
-
-### Research Applications
-
-This project serves as a foundation for advanced robotics research including:
-
-**Algorithmic Studies:**
-- Comparative analysis of classical vs. modern pathfinding approaches
-- Performance evaluation under constrained computational resources
-- Robustness analysis in partially observable environments
-
-**System Integration Research:**
-- Multi-sensor fusion techniques for autonomous navigation
-- Real-time control system optimization
-- Hardware-software co-design for embedded robotics
-
-**Artificial Intelligence Applications:**
-- Machine learning integration for adaptive navigation
-- Reinforcement learning implementation for policy optimization
-- Neural network-based path planning and obstacle avoidance
 
 ## Future Research Directions
 

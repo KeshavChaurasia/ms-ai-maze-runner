@@ -18,9 +18,9 @@ The controller employs advanced algorithms for:
 3. Movement direction enforcement for grid-based navigation
 4. Motor speed limiting to prevent wheel slip
 
-Author: [Your Name]
+Author: Keshav Chaurasia, Mark, Chris, David
 Date: July 2025
-Academic Project: AI-Powered Maze Navigation with Four-Wheel Robot
+Academic Project: Maze Navigation with Four-Wheel Robot
 """
 
 from config import Config

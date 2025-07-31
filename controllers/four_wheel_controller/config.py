@@ -5,9 +5,9 @@ This module contains all configuration parameters used throughout the robotics
 maze runner project. These constants control robot behavior, sensor sensitivity,
 movement precision, and debugging output.
 
-Author: Keshav Chaurasia
+Author: Keshav Chaurasia, Mark, Chris, David
 Date: July 2025
-Academic Project: AI-Powered Maze Navigation with Four-Wheel Robot
+Academic Project: Maze Navigation with Four-Wheel Robot
 """
 
 class Config:

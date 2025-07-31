@@ -16,9 +16,9 @@ References:
 - Muir, P.F. & Neuman, C.P. (1987). "Kinematic modeling of wheeled mobile robots"
 - Taheri, H. et al. (2015). "Omnidirectional mobile robots, mechanisms and navigation approaches"
 
-Author: Keshav Chaurasia
+Author: Keshav Chaurasia, Mark, Chris, David
 Date: July 2025
-Academic Project: AI-Powered Maze Navigation with Four-Wheel Robot
+Academic Project: Maze Navigation with Four-Wheel Robot
 """
 
 import math

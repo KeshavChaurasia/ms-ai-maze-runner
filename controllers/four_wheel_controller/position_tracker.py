@@ -28,9 +28,9 @@ cell occupies a 1x1 meter square, with cell centers offset by 0.5 meters
 from the grid boundaries. This design facilitates precise robot positioning
 within maze cells while maintaining computational simplicity.
 
-Author: [Your Name]
+Author: Keshav Chaurasia, Mark, Chris, David
 Date: July 2025
-Academic Project: AI-Powered Maze Navigation with Four-Wheel Robot
+Academic Project: Maze Navigation with Four-Wheel Robot
 """
 
 import math

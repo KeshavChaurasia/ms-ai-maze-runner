@@ -38,11 +38,9 @@ Implemented Algorithms:
 2. Left/Right Wall Following - Classic maze navigation techniques
 3. Smart Wall Following - Enhanced wall following with mapping memory
 
-Author: [Your Name]
+Author: Keshav Chaurasia, Mark, Chris, David
 Date: July 2025
-Academic Project: AI-Powered Maze Navigation with Four-Wheel Robot
-Course: [Course Name/Number]
-Institution: [Institution Name]
+Academic Project: Maze Navigation with Four-Wheel Robot
 """
 
 from controller import Robot, DistanceSensor, Motor, GPS, Compass
