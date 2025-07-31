@@ -210,27 +210,6 @@ class MazeController:
         self.robot.stop()
         print("Robot stopped.")
     
-    def print_help(self):
-        """Print available commands and usage instructions."""
-        print("\n===  Maze Controller Help ===")
-        print("Available Methods:")
-        print("  controller.initialize() - Initialize robot and subsystems")
-        print("  controller.wait_for_gps() - Wait for GPS to be ready")
-        print("  controller.run_dfs() - Run Depth-First Search")
-        print("  controller.run_left_wall_following() - Run Left Wall Following")
-        print("  controller.run_right_wall_following() - Run Right Wall Following")
-        print("  controller.run_smart_wall_following() - Run Smart Wall Following")
-        print("  controller.get_current_position() - Get robot position")
-        print("  controller.get_sensor_readings() - Get sensor values")
-        print("  controller.stop() - Stop robot")
-        
-        print("\nUsage Example:")
-        print("  controller = MazeController()")
-        print("  controller.initialize()")
-        print("  controller.wait_for_gps()")
-        print("  controller.run_dfs()")
-
-
 # Main execution for testing
 if __name__ == "__main__":
     print("Maze Controller")
