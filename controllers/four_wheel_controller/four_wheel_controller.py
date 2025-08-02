@@ -19,8 +19,12 @@ Usage Example:
     controller.run_astar()
     controller.run_flood_fill()
 
-Author: Keshav Chaurasia, Mark, Chris, David
-Date: July 2025
+Authors: Christopher Hunter-Bennett
+         David Rasheeld Watler
+         Keshav Chaurasia 
+         Mark Arthur Gabiana
+         Rainer Knapp
+Date: August 2025
 Academic Project: Maze Navigation with Four-Wheel Robot
 """
 

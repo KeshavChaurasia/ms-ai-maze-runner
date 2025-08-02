@@ -12,8 +12,12 @@ Key Features:
 - Cell-based movement commands
 - Sensor reading and wall detection
 
-Author: Keshav Chaurasia, Mark, Chris, David
-Date: July 2025
+Authors: Christopher Hunter-Bennett
+         David Rasheeld Watler
+         Keshav Chaurasia 
+         Mark Arthur Gabiana
+         Rainer Knapp
+Date: August 2025
 Academic Project: Maze Navigation with Four-Wheel Robot
 """
 

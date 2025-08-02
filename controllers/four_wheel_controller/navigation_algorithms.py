@@ -14,8 +14,12 @@ Implemented Algorithms:
 6. Right Wall Following - Classic right-hand maze navigation  
 7. Smart Wall Following - Enhanced wall following with mapping memory
 
-Author: Keshav Chaurasia, Mark, Chris, David
-Date: July 2025
+Authors: Christopher Hunter-Bennett
+         David Rasheeld Watler
+         Keshav Chaurasia 
+         Mark Arthur Gabiana
+         Rainer Knapp
+Date: August 2025
 Academic Project: Maze Navigation with Four-Wheel Robot
 """
 
